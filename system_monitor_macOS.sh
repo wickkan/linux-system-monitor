@@ -5,6 +5,7 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/config_parser.sh"
 source "${SCRIPT_DIR}/lib/logger.sh"
+source "${SCRIPT_DIR}/lib/process_monitor.sh"
 
 validate_config
 load_config
@@ -52,6 +53,7 @@ while true; do
     current_cpu="N/A"
     current_mem="N/A"
     current_disk="N/A"
+    top_processes=""
 
     if [ "$ENABLE_CPU" = "true" ]; then
         idle_cpu=$(top -l 1 | grep "CPU usage" | awk '{print $7}' | sed 's/%//')
@@ -70,9 +72,14 @@ while true; do
         check_alarm "DISK" "$current_disk"
     fi
 
+    if [ "$ENABLE_PROCESSES" = "true" ]; then
+        top_processes=$(get_top_processes "$PROCESS_TOP_COUNT" "macOS")
+        format_processes_human "$top_processes"
+    fi
+
     if [ "$LOGGING_ENABLED" = "true" ]; then
         timestamp=$(date "+%Y-%m-%d %H:%M:%S")
-        log_metrics "$timestamp" "$current_cpu" "$current_mem" "$current_disk" "macOS"
+        log_metrics "$timestamp" "$current_cpu" "$current_mem" "$current_disk" "macOS" "$top_processes"
     fi
 
     echo "-----------------------------------------------"
