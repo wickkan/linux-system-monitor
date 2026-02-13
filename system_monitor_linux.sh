@@ -1,55 +1,77 @@
 #!/bin/bash
 
-# Threshold Definitions
-CPU_THRESHOLD=80
-MEMORY_THRESHOLD=80
-DISK_THRESHOLD=80
+# System Monitor for Linux - Configuration-driven monitoring tool
 
-echo "------System Health Check------"
-date
-echo "-------------------------------"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib/config_parser.sh"
 
-# alarm function
+validate_config
+load_config
+
+echo "========================================"
+echo "    System Monitor - Linux Edition"
+echo "========================================"
+if [ "$SHOW_TIMESTAMP" = "true" ]; then
+    date
+fi
+print_config
+echo "========================================"
+echo ""
+
 check_alarm() {
     local type=$1
     local value=$2
     local threshold_var_name="${type}_THRESHOLD"
     local threshold_limit=${!threshold_var_name}
-
-    # Convert decimal to integer by rounding
     local int_value=$(printf "%.0f" "$value")
 
-    # Use standard Bash integer comparison
+    local RED=""
+    local GREEN=""
+    local RESET=""
+    if [ "$COLORS_ENABLED" = "true" ]; then
+        RED="\033[0;31m"
+        GREEN="\033[0;32m"
+        RESET="\033[0m"
+    fi
+
     if [ "$int_value" -gt "$threshold_limit" ]; then
-        echo -e "\033[0;31m[ALARM]\033[0m ${type} threshold exceeded! Current: ${value}%, Limit: ${threshold_limit}%"
+        echo -e "${RED}[ALARM]${RESET} ${type} threshold exceeded! Current: ${value}%, Limit: ${threshold_limit}%"
     else
-        echo -e "\033[0;32m[OK]\033[0m ${type} usage: ${value}%"
+        echo -e "${GREEN}[OK]${RESET} ${type} usage: ${value}%"
     fi
 }
 
-# system monitoring
 echo "Starting System Monitor... Press [CTRL+C] to stop."
+echo "Monitoring interval: ${MONITORING_INTERVAL} seconds"
 echo "-----------------------------------------------"
 
+mkdir -p "${LOG_DIR}/linux"
+
 while true; do
-    # Get CPU usage (Linux style: 100 - idle)
-    current_cpu=$(top -bn1 | grep "Cpu(s)" | awk '{print 100 - $8}')
+    current_cpu="N/A"
+    current_mem="N/A"
+    current_disk="N/A"
 
-    # Get Memory usage % (Linux style: used/total)
-    current_mem=$(free | grep Mem | awk '{print $3/$2 * 100.0}')
+    if [ "$ENABLE_CPU" = "true" ]; then
+        current_cpu=$(top -bn1 | grep "Cpu(s)" | awk '{print 100 - $8}')
+        check_alarm "CPU" "$current_cpu"
+    fi
 
-    # Get Disk usage % for root directory
-    current_disk=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
+    if [ "$ENABLE_MEMORY" = "true" ]; then
+        current_mem=$(free | grep Mem | awk '{print $3/$2 * 100.0}')
+        check_alarm "MEMORY" "$current_mem"
+    fi
 
-    # 4. Calls (Now matching the function name above)
-    check_alarm "CPU" "$current_cpu"
-    check_alarm "MEMORY" "$current_mem"
-    check_alarm "DISK" "$current_disk"
+    if [ "$ENABLE_DISK" = "true" ]; then
+        current_disk=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
+        check_alarm "DISK" "$current_disk"
+    fi
 
-    log="$(date "+%Y-%m-%d %H:%M:%S") | CPU ${current_cpu}% | MEMORY ${current_mem}% | DISK ${current_disk}%"
-    echo "$log" >> logs/linux/resource_usage.log
+    if [ "$LOGGING_ENABLED" = "true" ]; then
+        log="$(date "+%Y-%m-%d %H:%M:%S") | CPU ${current_cpu}% | MEMORY ${current_mem}% | DISK ${current_disk}%"
+        echo "$log" >> "${LOG_DIR}/linux/resource_usage.log"
+    fi
 
     echo "-----------------------------------------------"
-
-    sleep 5
+    sleep "$MONITORING_INTERVAL"
 done
