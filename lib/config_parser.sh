@@ -33,6 +33,8 @@ load_config() {
     export ENABLE_CPU=$(get_config_value ".monitoring.metrics_enabled.cpu" "true")
     export ENABLE_MEMORY=$(get_config_value ".monitoring.metrics_enabled.memory" "true")
     export ENABLE_DISK=$(get_config_value ".monitoring.metrics_enabled.disk" "true")
+    export ENABLE_PROCESSES=$(get_config_value ".monitoring.process_monitoring.enabled" "false")
+    export PROCESS_TOP_COUNT=$(get_config_value ".monitoring.process_monitoring.top_count" "5")
 
     # Display settings
     export COLORS_ENABLED=$(get_config_value ".display.colors_enabled" "true")

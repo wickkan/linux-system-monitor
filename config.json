@@ -5,7 +5,12 @@
       "cpu": true,
       "memory": true,
       "disk": true,
-      "processes": false
+      "processes": true
+    },
+    "process_monitoring": {
+      "enabled": true,
+      "top_count": 5,
+      "sort_by": "cpu"
     }
   },
   "thresholds": {
