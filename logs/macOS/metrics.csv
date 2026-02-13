@@ -1,4 +1,0 @@
-timestamp,platform,cpu_percent,memory_percent,disk_percent,top_process
-2026-02-13 19:39:32,macOS,20.19,29,13,/Applications/Visual
-2026-02-13 19:39:38,macOS,24.63,28,13,/usr/local/mysql/bin/mysqld
-2026-02-13 19:40:29,macOS,22.66,29,13,/Applications/Visual

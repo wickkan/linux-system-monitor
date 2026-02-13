@@ -1,0 +1,13 @@
+# Log files
+logs/
+*.log
+*.csv
+*.jsonl
+
+
+# macOS
+.DS_Store
+
+# Temporary files
+*.tmp
+*.swp
