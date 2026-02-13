@@ -6,6 +6,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/config_parser.sh"
 source "${SCRIPT_DIR}/lib/logger.sh"
 source "${SCRIPT_DIR}/lib/process_monitor.sh"
+source "${SCRIPT_DIR}/lib/network_monitor.sh"
+source "${SCRIPT_DIR}/lib/service_monitor.sh"
+source "${SCRIPT_DIR}/lib/advanced_metrics.sh"
 
 validate_config
 load_config
@@ -54,6 +57,9 @@ while true; do
     current_mem="N/A"
     current_disk="N/A"
     top_processes=""
+    network_data=""
+    service_data=""
+    advanced_data=""
 
     if [ "$ENABLE_CPU" = "true" ]; then
         current_cpu=$(top -bn1 | grep "Cpu(s)" | awk '{print 100 - $8}')
@@ -75,9 +81,108 @@ while true; do
         format_processes_human "$top_processes"
     fi
 
+    # Network monitoring
+    if [ "$ENABLE_NETWORK" = "true" ]; then
+        echo "  Network Monitoring:"
+        IFS=',' read -ra INTERFACES <<< "$NETWORK_INTERFACES"
+        network_summary=""
+        for iface in "${INTERFACES[@]}"; do
+            iface=$(echo "$iface" | xargs) # trim whitespace
+            stats=$(get_network_stats "$iface" "linux")
+            summary=$(format_network_summary "$iface" "$stats" "")
+            echo "    [$iface] $summary"
+            network_summary="${network_summary}${iface}:${summary};"
+        done
+        if [ "$NETWORK_TRACK_CONNECTIONS" = "true" ]; then
+            connections=$(get_connection_count "linux")
+            echo "    Connections: TCP/UDP/EST: $connections"
+            network_data="{\"interfaces\":\"${NETWORK_INTERFACES}\",\"connections\":\"${connections}\"}"
+        else
+            network_data="{\"interfaces\":\"${NETWORK_INTERFACES}\"}"
+        fi
+    fi
+
+    # Service monitoring
+    if [ "$ENABLE_SERVICES" = "true" ]; then
+        echo "  Service Health:"
+        services_down=0
+        if [ -n "$SERVICES_TO_MONITOR" ]; then
+            IFS=',' read -ra SERVICES <<< "$SERVICES_TO_MONITOR"
+            for svc in "${SERVICES[@]}"; do
+                svc=$(echo "$svc" | xargs) # trim whitespace
+                status=$(check_service_status "$svc" "linux")
+                format_service_status "$svc" "$status"
+                state=$(echo "$status" | cut -d'|' -f1)
+                if [ "$state" != "running" ] && [ "$state" != "active" ]; then
+                    ((services_down++))
+                fi
+            done
+        fi
+        if [ -n "$PROCESSES_TO_MONITOR" ]; then
+            IFS=',' read -ra PROCS <<< "$PROCESSES_TO_MONITOR"
+            for proc in "${PROCS[@]}"; do
+                proc=$(echo "$proc" | xargs) # trim whitespace
+                status=$(check_process_running "$proc")
+                format_process_status "$proc" "$status"
+            done
+        fi
+        service_data="{\"services\":\"${SERVICES_TO_MONITOR}\",\"processes\":\"${PROCESSES_TO_MONITOR}\",\"down\":${services_down}}"
+    fi
+
+    # Advanced metrics
+    if [ "$ENABLE_ADVANCED" = "true" ]; then
+        echo "  Advanced Metrics:"
+        load_avg=""
+        swap_stats=""
+        disk_io=""
+        temp=""
+
+        if [ "$TRACK_LOAD_AVERAGE" = "true" ]; then
+            load_avg=$(get_load_average "linux")
+            echo "    Load Average: $(format_load_average "$load_avg")"
+            load_1m=$(echo "$load_avg" | awk '{print $1}')
+            # Check threshold for 1-minute load average
+            if command -v bc >/dev/null 2>&1; then
+                threshold_check=$(echo "$load_1m > $LOAD_THRESHOLD_1M" | bc -l 2>/dev/null)
+                if [ -n "$threshold_check" ] && [ "$threshold_check" -eq 1 ] 2>/dev/null; then
+                    echo "    [ALARM] Load average 1m ($load_1m) exceeds threshold ($LOAD_THRESHOLD_1M)"
+                fi
+            fi
+        fi
+
+        if [ "$TRACK_SWAP" = "true" ]; then
+            swap_stats=$(get_swap_stats "linux")
+            echo "    Swap Usage: $(format_swap_stats "$swap_stats")"
+            swap_percent=$(echo "$swap_stats" | awk '{print $3}')
+            if [ "$swap_percent" != "N/A" ] && [ -n "$swap_percent" ] && [ "$swap_percent" != "0" ]; then
+                check_alarm "SWAP" "$swap_percent"
+            fi
+        fi
+
+        if [ "$TRACK_DISK_IO" = "true" ]; then
+            disk_io=$(get_disk_io_stats "linux")
+            echo "    Disk I/O: $(format_disk_io "$disk_io")"
+        fi
+
+        if [ "$TRACK_TEMPERATURE" = "true" ]; then
+            temp=$(get_temperature_stats "linux")
+            if [ "$temp" != "N/A" ]; then
+                echo "    Temperature: ${temp}°C"
+                temp_int=$(printf "%.0f" "$temp" 2>/dev/null || echo "0")
+                if [ "$temp_int" -gt "$TEMP_THRESHOLD" ] 2>/dev/null; then
+                    echo "    [ALARM] Temperature ($temp°C) exceeds threshold ($TEMP_THRESHOLD°C)"
+                fi
+            else
+                echo "    Temperature: N/A (install sensors or lm-sensors)"
+            fi
+        fi
+
+        advanced_data="{\"load\":\"${load_avg}\",\"swap\":\"${swap_stats}\",\"io\":\"${disk_io}\",\"temp\":\"${temp}\"}"
+    fi
+
     if [ "$LOGGING_ENABLED" = "true" ]; then
         timestamp=$(date "+%Y-%m-%d %H:%M:%S")
-        log_metrics "$timestamp" "$current_cpu" "$current_mem" "$current_disk" "linux" "$top_processes"
+        log_metrics "$timestamp" "$current_cpu" "$current_mem" "$current_disk" "linux" "$top_processes" "$network_data" "$service_data" "$advanced_data"
     fi
 
     echo "-----------------------------------------------"
