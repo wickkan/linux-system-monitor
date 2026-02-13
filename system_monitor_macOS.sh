@@ -51,7 +51,7 @@ while true; do
 
     # logging
     log="$(date "+%Y-%m-%d %H:%M:%S") | CPU ${current_cpu}% | MEMORY ${current_mem}% | DISK ${current_disk}%"
-    echo "$log" >> logs/maxOS/resource_usage.log
+    echo "$log" >> logs/macOS/resource_usage.log
 
     echo "-----------------------------------------------"
 
