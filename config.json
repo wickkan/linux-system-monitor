@@ -5,18 +5,46 @@
       "cpu": true,
       "memory": true,
       "disk": true,
-      "processes": true
+      "processes": true,
+      "network": true,
+      "services": true,
+      "advanced_metrics": true
     },
     "process_monitoring": {
       "enabled": true,
       "top_count": 5,
       "sort_by": "cpu"
+    },
+    "network_monitoring": {
+      "enabled": true,
+      "interfaces": ["en0"],
+      "track_bandwidth": true,
+      "track_connections": true
+    },
+    "service_monitoring": {
+      "enabled": true,
+      "services": ["com.apple.ssh", "com.apple.cron"],
+      "processes_to_monitor": ["bash", "zsh"]
+    },
+    "advanced_metrics": {
+      "enabled": true,
+      "load_average": true,
+      "swap_usage": true,
+      "disk_io": true,
+      "temperature": true
     }
   },
   "thresholds": {
     "cpu_percent": 80,
     "memory_percent": 80,
-    "disk_percent": 80
+    "disk_percent": 80,
+    "load_average_1m": 2.0,
+    "load_average_5m": 1.5,
+    "load_average_15m": 1.0,
+    "swap_percent": 50,
+    "disk_io_util": 80,
+    "temperature_celsius": 80,
+    "network_errors_per_sec": 10
   },
   "logging": {
     "enabled": true,
