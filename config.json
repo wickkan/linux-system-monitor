@@ -1,0 +1,31 @@
+{
+  "monitoring": {
+    "interval_seconds": 5,
+    "metrics_enabled": {
+      "cpu": true,
+      "memory": true,
+      "disk": true,
+      "processes": false
+    }
+  },
+  "thresholds": {
+    "cpu_percent": 80,
+    "memory_percent": 80,
+    "disk_percent": 80
+  },
+  "logging": {
+    "enabled": true,
+    "formats": {
+      "human_readable": true,
+      "json": false,
+      "csv": false
+    },
+    "log_directory": "logs",
+    "retention_days": 30
+  },
+  "display": {
+    "colors_enabled": true,
+    "show_timestamp": true,
+    "alert_sound": false
+  }
+}
