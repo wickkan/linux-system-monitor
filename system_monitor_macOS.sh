@@ -49,6 +49,10 @@ while true; do
     check_alarm "MEMORY" "$current_mem"
     check_alarm "DISK" "$current_disk"
 
+    # logging
+    log="$(date "+%Y-%m-%d %H:%M:%S") | CPU ${current_cpu}% | MEMORY ${current_mem}% | DISK ${current_disk}%"
+    echo "$log" >> logs/maxOS/resource_usage.log
+
     echo "-----------------------------------------------"
 
     sleep 5
