@@ -4,6 +4,7 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/config_parser.sh"
+source "${SCRIPT_DIR}/lib/logger.sh"
 
 validate_config
 load_config
@@ -70,8 +71,8 @@ while true; do
     fi
 
     if [ "$LOGGING_ENABLED" = "true" ]; then
-        log="$(date "+%Y-%m-%d %H:%M:%S") | CPU ${current_cpu}% | MEMORY ${current_mem}% | DISK ${current_disk}%"
-        echo "$log" >> "${LOG_DIR}/macOS/resource_usage.log"
+        timestamp=$(date "+%Y-%m-%d %H:%M:%S")
+        log_metrics "$timestamp" "$current_cpu" "$current_mem" "$current_disk" "macOS"
     fi
 
     echo "-----------------------------------------------"

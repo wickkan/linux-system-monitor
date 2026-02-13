@@ -3,8 +3,8 @@
 # Configuration Parser Library
 # Provides functions to read and validate JSON configuration
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_FILE="${SCRIPT_DIR}/../config.json"
+_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_FILE="${_LIB_DIR}/../config.json"
 
 get_config_value() {
     local json_path=$1

@@ -17,8 +17,8 @@
     "enabled": true,
     "formats": {
       "human_readable": true,
-      "json": false,
-      "csv": false
+      "json": true,
+      "csv": true
     },
     "log_directory": "logs",
     "retention_days": 30
